@@ -5,8 +5,6 @@
 void testApp::discover_and_fly_drone() {
     
     float speed = 0.50;
-    int land = 0;
-    int autoTakeoff = 0;
     
     int commandFound = 0;
     
@@ -56,7 +54,7 @@ void testApp::discover_and_fly_drone() {
      + - speed up
      - - slow down
      space bar - land / takeoff toggle
-     enter key - take a photo
+     enter key - tatke a photo
      up arrow - tilt forward
      back arrow - tilt backwards
      right arrow - rotate right
@@ -304,10 +302,29 @@ void testApp::onNewMessage(string & message)
 {
     cout << "" << message << "\n";
     if (message=="atom1_active"){
-       //LAND DRONE
+       
+        //Kill Atom 
         irCommand = "ATOM1 TAP";
         NSLog(@"ATOM1 TAPPED / DROP");
         [MDDC sendEmergency];
+        
+        //Kill PID
+        start_pid = false;
+
+        //Reset Origin
+        set_x_z_y_o(mx, 1.6, my, 0.0); // altitude set to 1.6 for pid
+        printf("****** ORIGIN SET TO: [%f,%f,%f]\n",mx,my,1.6);
+        lastSetMy = my;
+        
+        //Enable Auto Take off
+        NSLog(@"Auto Takeoff Enabled");
+        [MDDC sendAutoTakeoff:1];
+        autoTakeoff = 1;
+        
+        
+        
+        
+        
         
     } else if (message=="atom2_active"){
         //LAND DRONE
@@ -413,10 +430,16 @@ void testApp::update(){
     if (true){
         if (start_pid){
             drone_control(&pitch, &roll, &yaw, &gaz);
+            //sang - reorient
+            yaw = 0.3*(mya-0.018);
+        }
+        else{
+            roll = 0;
+            pitch = 0;
+            yaw = 0;
+            gaz = 0;
         }
         
-        //sang - reorient
-        yaw = 0.3*(mya-0.018);
         
         //ardrone.moves(pitch, roll, gaz, yaw);
     }
@@ -555,9 +578,9 @@ void testApp::draw(){
     }
     font.drawString("Battery: " + ofToString(MDDC.battery) + " PID: " +  (start_pid?"On":"Off") + (readyForCommands?" READY!":" !!NOT READY!!")+" PathPos: "+ ofToString(path_position), 20, 160);
   
-    font.drawString(ofToString("X_PID") + (x_hyster?"(H)":"(-)")+": " + ofToString(gainx[0],2) + " : " + ofToString(gainx[1],2) + " : " + ofToString(gainx[2],2), 20, 680);
-    font.drawString(ofToString("Y_PID") + (y_hyster?"(H)":"(-)")+": " + ofToString(gainy[0],2) + " : " + ofToString(gainy[1],2) + " : " + ofToString(gainy[2],2), 20, 730);
-    font.drawString(ofToString("Z_PID") + (z_hyster?"(H)":"(-)")+": " + ofToString(gainz[0],2) + " : " + ofToString(gainz[1],2) + " : " + ofToString(gainz[2],2), 20, 780);
+    font.drawString(ofToString("X_PID") + (x_hyster?"(H)":"(-)")+": " + ofToString(gainx[0],2) + " : " + ofToString(gainx[1],7) + " : " + ofToString(gainx[2],2), 20, 680);
+    font.drawString(ofToString("Y_PID") + (y_hyster?"(H)":"(-)")+": " + ofToString(gainy[0],2) + " : " + ofToString(gainy[1],7) + " : " + ofToString(gainy[2],2), 20, 730);
+    font.drawString(ofToString("Z_PID") + (z_hyster?"(H)":"(-)")+": " + ofToString(gainz[0],2) + " : " + ofToString(gainz[1],7) + " : " + ofToString(gainz[2],2), 20, 780);
     
     font.drawString(irCommand, 740, 780);
 
@@ -622,13 +645,13 @@ void testApp::keyPressed(int key){
         gainy[0] = gainy[0] + 0.05;
     }
     if (key == '7') {
-        gainx[1] = gainx[1] - 0.05;
-        gainy[1] = gainy[1] - 0.05;
+        gainx[1] = gainx[1] - 0.00005;
+        gainy[1] = gainy[1] - 0.00005;
     }
     
     if (key == '8') {
-        gainx[1] = gainx[1] + 0.05;
-        gainy[1] = gainy[1] + 0.05;
+        gainx[1] = gainx[1] + 0.00005;
+        gainy[1] = gainy[1] + 0.00005;
     }
     if (key == '9') {
         gainx[2] = gainx[2] - 0.05;

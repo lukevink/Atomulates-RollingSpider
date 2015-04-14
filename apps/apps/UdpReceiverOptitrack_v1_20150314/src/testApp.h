@@ -68,6 +68,8 @@ class testApp : public ofBaseApp{
     
         //state
         int readyForCommands = 0;
+        int autoTakeoff = 0;
+        int land = 0;
 
     
         //drone

@@ -1,6 +1,8 @@
 #include <math.h>
 #include <iostream>
 
+#include "ofMain.h"
+
 using namespace std;
 
 #include "control.h"
@@ -16,14 +18,17 @@ clock_t  clock2;
 double elapse=0;
 int start_pid = 0;
 
+long long t_1;
+long long t_2;
+
 //Tal's test defaults
 double gainx[3] = {0.85, 0., 6.8};
 double gainy[3] = {0.85, 0., 6.8};
 double gainz[3] = {0.7, 0., 7.6};
 
-//Hysteresis [range to stop, range to re-start, min_loiter_time]
-double hysterx[3] = { 0.1, 0.3 , 0.6};
-double hystery[3] = { 0.1, 0.3 , 0.6};
+//Hysteresis [range to stop, range to re-start, /**min_loiter_time**/]
+double hysterx[3] = { 0.1, 0.15 , 0.6};
+double hystery[3] = { 0.1, 0.15 , 0.6};
 double hysterz[3] = { 0.05, 0.12 , 0.1};
 
 //used to maintain state, X_hyster=true (1) means we were 'close enough' (see above) to shut off external PID.
@@ -57,42 +62,77 @@ float pid_control(double t, double v, double *ing, double *pre, double gain[3], 
 float pid_control2_x(double goal, double now, double gain[3], double dtime){
 	diff[0][0]=diff[0][1]; 
 	diff[0][1] = goal-now;
-
-        integral[0] += (diff[0][0]+diff[0][1]) / 2.0 * dtime;
     
-	float ret = gain[0] *diff[0][1] + gain[1]*integral[0] + gain[2]*(diff[0][1]-diff[0][0])/dtime;
-	//cout<<"X: "<<ret<<" "<<diff[0][1]<<" "<<(double)(diff[0][1]-diff[0][0])<<" "<<integral<<" "<<(int)dtime<<endl;
-    //printf("X: %f %f %f \n", ret, diff[0][1], diff[0][1] - diff[0][0]);
-
-	//should P component also be (diff[0]+diff[1]) / 2.0?
-    return ret;
+    
+    
+    if(fabs(integral[0])>10000.f){
+        integral[0] = 0.f;
+    }
+    
+    if(fabs(dtime)>10000.f || fabs(dtime)<0.2){
+        cout<<dtime<<" shit"<<endl;
+    }
+    else{
+        
+        integral[0] += (diff[0][0]+diff[0][1]) / 2.0 * dtime;
+        float ret = gain[0] *diff[0][1] + gain[1]*integral[0] + gain[2]*(diff[0][1]-diff[0][0])/dtime;
+        cout<<"X: "<<ret<<" "<<diff[0][1]<<" "<<(double)(diff[0][1]-diff[0][0])<<" "<<integral<<" "<<(int)dtime<<endl;
+        //printf("X: %f %f %f \n", ret, diff[0][1], diff[0][1] - diff[0][0]);
+        
+        //should P component also be (diff[0]+diff[1]) / 2.0?
+        return ret;
+    }
+    return 0;
 }
 
 float pid_control2_z(double goal, double now, double gain[3], double dtime){
 	diff[1][0]=diff[1][1]; 
 	diff[1][1] = goal-now;
-   
-    integral[1] += (diff[1][0]+diff[1][1]) / 2.0 * dtime; //TODO: ask Sang -- why was this "1+diff[1][1]"?
- 
-	float ret = gain[0] *diff[1][1] + gain[1]*integral[1] + gain[2]*(diff[1][1]-diff[1][0])/dtime;
-	//cout<<"Z: "<<ret<<" "<<diff[1][1]<<" "<<diff[1][1]-diff[1][0]<<" "<<integral<<" "<<dtime<<endl;
-
-	//should P component also be (diff[0]+diff[1]) / 2.0?
-    return ret;
+    
+    
+    if(fabs(integral[1])>10000.f){
+        integral[1] = 0.f;
+    }
+    
+    if(fabs(dtime)>10000.f || fabs(dtime)<0.2){
+        
+    }
+    else{
+        
+        integral[1] += (diff[1][0]+diff[1][1]) / 2.0 * dtime; //TODO: ask Sang -- why was this "1+diff[1][1]"?
+        
+        float ret = gain[0] *diff[1][1] + gain[1]*integral[1] + gain[2]*(diff[1][1]-diff[1][0])/dtime;
+        //cout<<"Z: "<<ret<<" "<<diff[1][1]<<" "<<diff[1][1]-diff[1][0]<<" "<<integral<<" "<<dtime<<endl;
+        
+        //should P component also be (diff[0]+diff[1]) / 2.0?
+        return ret;
+    }
+    return 0;
 }
 
 //height of the drone
 float pid_control2_y(double goal, double now, double gain[3], double dtime){
 	diff[2][0]=diff[2][1]; 
 	diff[2][1] = goal-now;
-   
-    integral[2] += (diff[2][0]+diff[2][1]) / 2.0 * dtime;
- 
-	float ret = gain[0] *diff[2][1] + gain[1]*integral[2] + gain[2]*(diff[2][1]-diff[2][0])/dtime;
-	//cout<<"Y: "<<ret<<" "<<diff[2][1]<<" "<<diff[2][1]-diff[2][0]<<" "<<integral<<" "<<dtime<<endl;
-
-	//should P component also be (diff[0]+diff[1]) / 2.0?
-    return ret;
+    
+    
+    if(fabs(integral[2])>10000.f){
+        integral[2] = 0.f;
+    }
+    
+    if(fabs(dtime)>10000.f || fabs(dtime)<0.2){
+        
+    }
+    else{
+        integral[2] += (diff[2][0]+diff[2][1]) / 2.0 * dtime;
+        
+        float ret = gain[0] *diff[2][1] + gain[1]*integral[2] + gain[2]*(diff[2][1]-diff[2][0])/dtime;
+        //cout<<"Y: "<<ret<<" "<<diff[2][1]<<" "<<diff[2][1]-diff[2][0]<<" "<<integral<<" "<<dtime<<endl;
+        
+        //should P component also be (diff[0]+diff[1]) / 2.0?
+        return ret;
+    }
+    return 0;
 }
 
 void drone_control(float *p, float *r, float *y, float *g){
@@ -149,15 +189,20 @@ void drone_control(float *p, float *r, float *y, float *g){
 	double ingx = 0.0, ingz = 0.0;
 	double prex = 0.0, prez = 0.0;
      */
-
+    
+    t_2 = ofGetSystemTimeMicros();
+    elapse=t_2-t_1;
+    printf("Elapsed of: %f  ", (float)(elapse));
+    t_1 = t_2;
+    
 	clock2=clock();
-	elapse=clock2-clock1;
+    printf("Elapsed: %f\n",(float)(clock2-clock1));
 	clock1=clock2;
-    printf("Elapsed: %f\n",elapse/1000.f);
+    
 
-	float dx = pid_control2_x(gmx, mx, gainx, elapse/1000.f);
-    float dz = pid_control2_z(gmz, mz, gainz, elapse/1000.f);
-    float dy = pid_control2_y(gmy, my, gainy, elapse/1000.f);
+	float dx = pid_control2_x(gmx, mx, gainx, elapse/20000.f);
+    float dz = pid_control2_z(gmz, mz, gainz, elapse/20000.f);
+    float dy = pid_control2_y(gmy, my, gainy, elapse/20000.f);
 
     
     //TODO: !!!! Make sure we don't get a 'jump' value when PID 'returns' from hyseteresis
