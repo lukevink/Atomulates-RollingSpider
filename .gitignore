@@ -15,7 +15,7 @@ addons/*
 
 # rule to avoid non-official apps going into git
 # see apps/.gitignore
-apps/*
+#apps/*
 
 # also, see examples/.gitignore
 
